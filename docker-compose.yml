@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  main_app:
+    image: dineshcode97/dcsolution         # Replace with your main app's Docker image
+    container_name: main_app
+    ports:
+      - "80:80"        # Example port mapping (customize as needed)
+    depends_on:
+      - sidecar_metrics               # Ensure sidecar starts before main app
+    volumes:
+      - nginxdata:/etc/nginx/  # Bind your custom Nginx config
+      - ./append_content.sh:/usr/local/bin/append_content.sh
+        #    command:  /bin/bash -c "/usr/local/bin/append_content.sh && nginx -g 'daemon off;'"  # Run script before starting Nginx   
+    command: ["bash","/usr/local/bin/append_content.sh"]
+    restart: always      
+
+  sidecar_metrics:
+    build:
+      context: ./sidecar               # Path to the sidecar folder with Dockerfile and Python script
+    container_name: sidecar_metrics
+    ports:
+      - "5000:5000"                    # Expose the Flask endpoint on port 5000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Required to access Docker's API
+    environment:
+      - CONTAINER_NAME=main_app        # Passing main app container name as an environment variable
+    restart: always                    # Ensure the sidecar restarts on failure
+
+volumes:
+  nginxdata:
